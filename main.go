@@ -18,8 +18,8 @@ func main() {
 	case "run":
 		run()
 
-	case "child":
-		child()
+	// case "child":
+	// 	child()
 
 	default:
 		fmt.Fprintln(os.Stderr, "wrong command")
@@ -28,38 +28,58 @@ func main() {
 }
 
 func run() {
-	fmt.Printf("run %v as %v\n", os.Args[2:], os.Getpid())
+	// fmt.Printf("run %v as %v\n", os.Args[2:], os.Getpid())
 
-	cmd := exec.Command("/proc/self/exe", append([]string{"child"}, os.Args[2:]...)...)
-
-	cmd.Stdin = os.Stdin
-	cmd.Stderr = os.Stderr
-	cmd.Stdout = os.Stdout
-
-	cmd.SysProcAttr = &syscall.SysProcAttr{
-		Cloneflags: syscall.CLONE_NEWUTS | syscall.CLONE_NEWPID,
-	}
-
-	err := cmd.Run()
-	checkError(err)
-
-}
-
-func child() {
-	fmt.Printf("run %v as %v\n", os.Args[2:], os.Getpid())
-
-	syscall.Sethostname([]byte("container"))
+	// cmd := exec.Command("/proc/self/exe", append([]string{"child"}, os.Args[2:]...)...)
 
 	cmd := exec.Command(os.Args[2], os.Args[3:]...)
 
 	cmd.Stdin = os.Stdin
-	cmd.Stderr = os.Stderr
 	cmd.Stdout = os.Stdout
+	cmd.Stderr = os.Stderr
 
-	err := cmd.Run()
+	cmd.Env = os.Environ()
+	cmd.Env = append(cmd.Env, "PS1=-[ns-process]- # ")
+
+	cmd.SysProcAttr = &syscall.SysProcAttr{
+		Cloneflags: syscall.CLONE_NEWNS |
+			syscall.CLONE_NEWUTS |
+			syscall.CLONE_NEWIPC |
+			syscall.CLONE_NEWPID |
+			syscall.CLONE_NEWNET |
+			syscall.CLONE_NEWUSER,
+	}
+
+	// err := cmd.Run()
+	// checkError(err)
+
+
+	if err := cmd.Start(); err != nil {
+		checkError(err)
+	}
+
+	fmt.Printf("run %v as %v\n", os.Args[2:], cmd.Process.Pid)
+
+	err := cmd.Wait()
 	checkError(err)
 
 }
+
+// func child() {
+// 	fmt.Printf("run %v as %v\n", os.Args[2:], os.Getpid())
+
+// 	syscall.Sethostname([]byte("container"))
+
+// 	cmd := exec.Command(os.Args[2], os.Args[3:]...)
+
+// 	cmd.Stdin = os.Stdin
+// 	cmd.Stderr = os.Stderr
+// 	cmd.Stdout = os.Stdout
+
+// 	err := cmd.Run()
+// 	checkError(err)
+
+// }
 
 func checkError(err error) {
 	if err != nil {
