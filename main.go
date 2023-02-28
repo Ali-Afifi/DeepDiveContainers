@@ -18,9 +18,6 @@ func main() {
 	case "run":
 		run()
 
-	// case "child":
-	// 	child()
-
 	default:
 		fmt.Fprintln(os.Stderr, "wrong command")
 		os.Exit(1)
@@ -28,9 +25,6 @@ func main() {
 }
 
 func run() {
-	// fmt.Printf("run %v as %v\n", os.Args[2:], os.Getpid())
-
-	// cmd := exec.Command("/proc/self/exe", append([]string{"child"}, os.Args[2:]...)...)
 
 	cmd := exec.Command(os.Args[2], os.Args[3:]...)
 
@@ -39,7 +33,7 @@ func run() {
 	cmd.Stderr = os.Stderr
 
 	cmd.Env = os.Environ()
-	cmd.Env = append(cmd.Env, "PS1=-[ns-process]- # ")
+	cmd.Env = append(cmd.Env, "PS1=\\u@[ns-process]--[\\w] # ")
 
 	cmd.SysProcAttr = &syscall.SysProcAttr{
 		Cloneflags: syscall.CLONE_NEWNS |
@@ -48,11 +42,23 @@ func run() {
 			syscall.CLONE_NEWPID |
 			syscall.CLONE_NEWNET |
 			syscall.CLONE_NEWUSER,
+
+		UidMappings: []syscall.SysProcIDMap{
+			{
+				ContainerID: 0,
+				HostID:      os.Getuid(),
+				Size:        1,
+			},
+		},
+
+		GidMappings: []syscall.SysProcIDMap{
+			{
+				ContainerID: 0,
+				HostID:      os.Getgid(),
+				Size:        1,
+			},
+		},
 	}
-
-	// err := cmd.Run()
-	// checkError(err)
-
 
 	if err := cmd.Start(); err != nil {
 		checkError(err)
@@ -64,22 +70,6 @@ func run() {
 	checkError(err)
 
 }
-
-// func child() {
-// 	fmt.Printf("run %v as %v\n", os.Args[2:], os.Getpid())
-
-// 	syscall.Sethostname([]byte("container"))
-
-// 	cmd := exec.Command(os.Args[2], os.Args[3:]...)
-
-// 	cmd.Stdin = os.Stdin
-// 	cmd.Stderr = os.Stderr
-// 	cmd.Stdout = os.Stdout
-
-// 	err := cmd.Run()
-// 	checkError(err)
-
-// }
 
 func checkError(err error) {
 	if err != nil {
