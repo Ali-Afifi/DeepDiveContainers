@@ -18,6 +18,9 @@ func main() {
 	case "run":
 		run()
 
+	case "fork":
+		fork()
+
 	default:
 		fmt.Fprintln(os.Stderr, "wrong command")
 		os.Exit(1)
@@ -26,14 +29,11 @@ func main() {
 
 func run() {
 
-	cmd := exec.Command(os.Args[2], os.Args[3:]...)
+	cmd := exec.Command("/proc/self/exe", append([]string{"fork"}, os.Args[2:]...)...)
 
 	cmd.Stdin = os.Stdin
 	cmd.Stdout = os.Stdout
 	cmd.Stderr = os.Stderr
-
-	cmd.Env = os.Environ()
-	cmd.Env = append(cmd.Env, "PS1=\\u@[ns-process]--[\\w] # ")
 
 	cmd.SysProcAttr = &syscall.SysProcAttr{
 		Cloneflags: syscall.CLONE_NEWNS |
@@ -64,11 +64,32 @@ func run() {
 		checkError(err)
 	}
 
-	fmt.Printf("run %v as %v\n", os.Args[2:], cmd.Process.Pid)
+	fmt.Printf("run %v as %v\n", os.Args[0], cmd.Process.Pid)
 
 	err := cmd.Wait()
 	checkError(err)
 
+}
+
+func fork() {
+	fmt.Printf("\n>> namespace setup code goes here <<\n\n")
+
+	cmd := exec.Command(os.Args[2], os.Args[3:]...)
+
+	cmd.Stdin = os.Stdin
+	cmd.Stderr = os.Stderr
+	cmd.Stdout = os.Stdout
+
+	cmd.Env = append(cmd.Env, "TERM="+os.Getenv("TERM"), "PS1=\\u@[container]--[\\w] # ")
+
+	if err := cmd.Start(); err != nil {
+		checkError(err)
+	}
+
+	fmt.Printf("run %v as %v\n", os.Args[2:], cmd.Process.Pid)
+
+	err := cmd.Wait()
+	checkError(err)
 }
 
 func checkError(err error) {
