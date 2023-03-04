@@ -74,6 +74,9 @@ func run() {
 func fork() {
 	fmt.Printf("\n>> namespace setup code goes here <<\n\n")
 
+	mountProc("/home/ali/code/learn/containers-from-scratch-in-go-lang/tmp-rootfs")
+	pivotRoot("/home/ali/code/learn/containers-from-scratch-in-go-lang/tmp-rootfs")
+
 	cmd := exec.Command(os.Args[2], os.Args[3:]...)
 
 	cmd.Stdin = os.Stdin
