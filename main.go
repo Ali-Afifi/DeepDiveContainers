@@ -19,6 +19,12 @@ func main() {
 		run()
 
 	case "fork":
+
+		if os.Args[0] != "/proc/self/exe" {
+			fmt.Fprintln(os.Stderr, "wrong command")
+			os.Exit(1)
+		}
+
 		fork()
 
 	default:
@@ -83,6 +89,7 @@ func fork() {
 	cmd.Stderr = os.Stderr
 	cmd.Stdout = os.Stdout
 
+	// cmd.Env = append(cmd.Env, "TERM="+os.Getenv("TERM"), "PS1=\\u@[\\h]--[\\w] # ")
 	cmd.Env = append(cmd.Env, "TERM="+os.Getenv("TERM"), "PS1=\\u@[container]--[\\w] # ")
 
 	if err := cmd.Start(); err != nil {
