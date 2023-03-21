@@ -80,8 +80,23 @@ func run() {
 func fork() {
 	fmt.Printf("\n>> namespace setup code goes here <<\n\n")
 
-	mountProc("/home/ali/code/learn/containers-from-scratch-in-go-lang/tmp-rootfs")
-	pivotRoot("/home/ali/code/learn/containers-from-scratch-in-go-lang/tmp-rootfs")
+	cwd, _ := os.Getwd()
+
+	if err := mountProc(cwd + "/tmp-rootfs"); err != nil {
+		fmt.Printf("Error mounting /proc - %s\n", err)
+		os.Exit(1)
+	}
+
+	if err := pivotRoot(cwd + "/tmp-rootfs"); err != nil {
+		fmt.Printf("Error running pivot_root - %s\n", err)
+		os.Exit(1)
+	}
+
+	if err := syscall.Sethostname([]byte("container")); err != nil {
+		fmt.Printf("Error setting hostname - %s\n", err)
+		os.Exit(1)
+	}
+
 
 	cmd := exec.Command(os.Args[2], os.Args[3:]...)
 
@@ -89,8 +104,7 @@ func fork() {
 	cmd.Stderr = os.Stderr
 	cmd.Stdout = os.Stdout
 
-	// cmd.Env = append(cmd.Env, "TERM="+os.Getenv("TERM"), "PS1=\\u@[\\h]--[\\w] # ")
-	cmd.Env = append(cmd.Env, "TERM="+os.Getenv("TERM"), "PS1=\\u@[container]--[\\w] # ")
+	cmd.Env = append(cmd.Env, "TERM="+os.Getenv("TERM"), "PS1=\\u@[\\h]--[\\w] # ")
 
 	if err := cmd.Start(); err != nil {
 		checkError(err)
