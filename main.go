@@ -1,7 +1,6 @@
 package main
 
 import (
-	"context"
 	"fmt"
 	"os"
 	"os/exec"
@@ -37,14 +36,8 @@ func main() {
 
 func run() {
 
-	emptyCtx := context.Background()
-	ctx, cancel := context.WithCancel(emptyCtx)
 
-	defer cancel()
-
-	cmd := exec.CommandContext(ctx, "/proc/self/exe", append([]string{"fork"}, os.Args[2:]...)...)
-
-	// cmd := exec.Command("/proc/self/exe", append([]string{"fork"}, os.Args[2:]...)...)
+	cmd := exec.Command("/proc/self/exe", append([]string{"fork"}, os.Args[2:]...)...)
 
 	cmd.Stdin = os.Stdin
 	cmd.Stdout = os.Stdout
@@ -83,10 +76,9 @@ func run() {
 
 	fmt.Printf("run %v as %v\n", os.Args[0], containerPid)
 
-	netNsCmd := exec.CommandContext(ctx, "slirp4netns", "--configure", "--mtu=65520", strconv.Itoa(containerPid), "tap0")
+	netNsCmd := exec.Command("slirp4netns", "--configure", "--mtu=65520", strconv.Itoa(containerPid), "tap0")
 
 	if err := netNsCmd.Start(); err != nil {
-		cancel()
 		checkError(err)
 	}
 
@@ -94,7 +86,6 @@ func run() {
 
 	if err != nil {
 		fmt.Fprintln(os.Stderr, "Fatal error ", err.Error())
-		cancel()
 	}
 
 	if err := netNsCmd.Process.Kill(); err != nil {
